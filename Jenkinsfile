@@ -18,14 +18,14 @@ pipeline {
                     // Retrieve Dockerhub credentials from Jenkins
                     withCredentials([usernamePassword(credentialsId: 'Dockerhub', passwordVariable: 'DOCKERHUB_CREDENTIALS_PSW', usernameVariable: 'DOCKERHUB_CREDENTIALS_USR')]) {
                         // Log in to Dockerhub
-                        bat 'docker login -u ${DOCKERHUB_CREDENTIALS_USR} -p ${DOCKERHUB_CREDENTIALS_PSW}'
+                        sh'docker login -u ${DOCKERHUB_CREDENTIALS_USR} -p ${DOCKERHUB_CREDENTIALS_PSW}'
                     }
                 }
             }
         }
         stage('Pulling base image from Dockerhub') {
             steps {
-                bat 'docker pull free5gc/webconsole-base:latest'
+                sh'docker pull free5gc/webconsole-base:latest'
             }
         }
         stage('docker build') {
@@ -39,28 +39,28 @@ pipeline {
         }
         stage('Scan Image for Common Vulnerabilities and Exposures') {
             steps {
-                bat 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v C:/Users/BADR/AppData/Local/Docker/wsl:/images aquasec/trivy image heshamsakr106/webui:latest --output /images/trivy-report.json'
+                sh'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image heshamsakr106/webui:latest'
             }
         }
 
         stage('Pushing to Dockerhub') {
             steps {
-                bat 'docker push heshamsakr106/webui:latest'
+                sh'docker push heshamsakr106/webui:latest'
             }
         }
         stage('Build and Package Helm Chart') {
             steps {
-                bat 'helm package ./helm/'
+                sh'helm package ./helm/'
             }
         }
         stage('Configure Kubernetes Context') {
             steps {
-                bat 'aws eks --region us-east-1 update-kubeconfig --name 5G-Core-Net'
+                sh'aws eks --region us-east-1 update-kubeconfig --name 5G-Core-Net'
             }
         }
         stage('Deploy Helm Chart on EKS') {
             steps {
-                bat 'helm upgrade --install amf ./helm/'
+                sh'helm upgrade --install amf ./helm/'
             }
         }
     }
@@ -68,8 +68,8 @@ pipeline {
         always {
             // Archiving Test Result
             archiveArtifacts artifacts: 'trivy-report.json', fingerprint: true
-            bat 'docker rmi heshamsakr106/webui:latest'
-            bat 'docker rmi free5gc/webconsole-base:latest'
+            sh'docker rmi heshamsakr106/webui:latest'
+            sh'docker rmi free5gc/webconsole-base:latest'
         }
     }
 }
